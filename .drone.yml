@@ -1,0 +1,64 @@
+kind: pipeline
+name: test
+
+steps:
+- name: tests
+  image: python:2.7
+  commands:
+  - pip install --quiet mock
+  - pip install --quiet assertpy
+  - pip install --quiet .
+  - pytest
+
+---
+kind: pipeline
+name: publish
+
+steps:
+- name: docker-dev
+  image: plugins/docker
+  settings:
+    username:
+      from_secret: DOCKER_USERNAME
+    password:
+      from_secret: DOCKER_PASSWORD
+    repo: shouptech/nip.io
+    tags:
+    - ${DRONE_BUILD_NUMBER}
+  when:
+    event:
+      exclude:
+      - pull_request
+
+- name: docker-latest
+  image: plugins/docker
+  settings:
+    username:
+      from_secret: DOCKER_USERNAME
+    password:
+      from_secret: DOCKER_PASSWORD
+    repo: shouptech/nip.io
+    tags:
+    - latest
+  when:
+    branch:
+    - master
+    event:
+      exclude:
+      - pull_request
+
+- name: docker-release
+  image: plugins/docker
+  settings:
+    username:
+      from_secret: DOCKER_USERNAME
+    password:
+      from_secret: DOCKER_PASSWORD
+    repo: shouptech/nip.io
+    auto_tag: true
+  when:
+    event:
+    - tag
+
+depends_on:
+- test
